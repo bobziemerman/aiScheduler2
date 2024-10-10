@@ -125,6 +125,7 @@
             }
 
             function renderScheduler() {
+                const scheduler = document.querySelector('.scheduler');
                 scheduler.innerHTML = '';
                 scheduler.appendChild(createCell("Time", "header"));
                 days.forEach(day => scheduler.appendChild(createCell(day, "header")));
