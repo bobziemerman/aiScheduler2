@@ -4,86 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Group Availability Scheduler</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            margin: 0;
-            padding: 20px;
-            background-color: #f7f7f7;
-        }
-        .scheduler {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 5px;
-            max-width: 1200px;
-            width: 100%;
-        }
-        .scheduler div {
-            padding: 10px;
-            border: 1px solid #ccc;
-            text-align: center;
-            cursor: pointer;
-        }
-        .header {
-            background-color: #0044cc;
-            color: #ffffff;
-            font-weight: bold;
-        }
-        .available {
-            background-color: #d4edda;
-        }
-        .unavailable {
-            background-color: #f8d7da;
-        }
-        .partially-available {
-            background-color: #ffeeba;
-        }
-        .controls {
-            margin-bottom: 20px;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        .modal-content input {
-            margin-right: 10px;
-        }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
     <h1>Group Availability Scheduler</h1>
-    <div class="controls">
-        <select id="userSelect">
+    <div class="flex items-center space-x-4 mb-4">
+        <label class="text-lg font-semibold">Other Users:</label>
+        <div id="userCheckboxes" class="flex flex-wrap space-x-4"></div>
+    </div>
+    <div class="flex items-center space-x-4 mb-4">
+        <label for="userSelect" class="text-lg font-semibold">Who are you?</label>
+        <select id="userSelect" class="border border-gray-300 rounded-md p-2">
             <option value="">Select User</option>
         </select>
-        <button id="addUserButton">Add New User</button>
+        <button id="addUserButton" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Add New User</button>
     </div>
-    <div id="addUserModal" class="modal">
-        <div class="modal-content">
+    <div id="addUserModal" class="modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div class="modal-content bg-white p-6 rounded-lg shadow-lg">
             <h2>Add New User</h2>
-            <input type="text" id="newUserName" placeholder="Enter user name">
-            <button id="saveUserButton">Save</button>
-            <button id="cancelUserButton">Cancel</button>
+            <input type="text" id="newUserName" placeholder="Enter user name" class="border border-gray-300 rounded-md p-2 mb-4">
+            <button id="saveUserButton" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">Save</button>
+            <button id="cancelUserButton" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 ml-2">Cancel</button>
         </div>
     </div>
-    <div class="scheduler">
+    <div class="scheduler grid grid-cols-8 gap-2 w-full max-w-5xl">
         <!-- Headers -->
         <div class="header">Time</div>
         <div class="header">Monday</div>
@@ -108,12 +52,14 @@
             const addUserButton = document.getElementById("addUserButton");
             const addUserModal = document.getElementById("addUserModal");
             const newUserNameInput = document.getElementById("newUserName");
+            const scheduler = document.querySelector(".scheduler");
             const saveUserButton = document.getElementById("saveUserButton");
             const cancelUserButton = document.getElementById("cancelUserButton");
 
             let users = JSON.parse(localStorage.getItem('users')) || [];
             let scheduleData = JSON.parse(localStorage.getItem('scheduleData')) || {};
             let currentUser = "";
+            let activeUsers = new Set();
 
             function createCell(content, cssClass = "") {
                 const cell = document.createElement("div");
@@ -125,7 +71,6 @@
             }
 
             function renderScheduler() {
-                const scheduler = document.querySelector('.scheduler');
                 scheduler.innerHTML = '';
                 scheduler.appendChild(createCell("Time", "header"));
                 days.forEach(day => scheduler.appendChild(createCell(day, "header")));
@@ -134,16 +79,21 @@
                     scheduler.appendChild(createCell(time, "header"));
                     days.forEach(day => {
                         const availabilityKey = `${currentUser}-${day}-${time}`;
-                        const cell = createCell("", scheduleData[availabilityKey] === "available" ? "available" : "unavailable");
+                        const isCurrentUserAvailable = scheduleData[availabilityKey] === "available";
+                        const otherUsersAvailable = [...activeUsers].every(user => scheduleData[`${user}-${day}-${time}`] === "available");
+                        const cellClass = isCurrentUserAvailable
+                            ? (otherUsersAvailable ? "bg-green-200" : "bg-gray-400")
+                            : "bg-red-200";
+                        const cell = createCell("", cellClass);
                         cell.addEventListener("click", () => {
                             if (currentUser) {
-                                if (cell.classList.contains("available")) {
-                                    cell.classList.remove("available");
-                                    cell.classList.add("unavailable");
+                                if (cell.classList.contains("bg-green-200")) {
+                                    cell.classList.remove("bg-green-200");
+                                    cell.classList.add("bg-red-200");
                                     scheduleData[availabilityKey] = "unavailable";
                                 } else {
-                                    cell.classList.remove("unavailable");
-                                    cell.classList.add("available");
+                                    cell.classList.remove("bg-red-200");
+                                    cell.classList.add("bg-green-200");
                                     scheduleData[availabilityKey] = "available";
                                 }
                                 saveSchedule();
@@ -168,6 +118,35 @@
                     option.textContent = user;
                     userSelect.appendChild(option);
                 });
+                renderUserCheckboxes();
+            }
+
+            function renderUserCheckboxes() {
+                const userCheckboxes = document.getElementById("userCheckboxes");
+                userCheckboxes.innerHTML = '';
+                users.forEach(user => {
+                    if (user !== currentUser) {
+                        const checkboxWrapper = document.createElement("div");
+                        const checkbox = document.createElement("input");
+                        checkbox.type = "checkbox";
+                        checkbox.id = user;
+                        checkbox.checked = activeUsers.has(user);
+                        checkbox.addEventListener("change", () => {
+                            if (checkbox.checked) {
+                                activeUsers.add(user);
+                            } else {
+                                activeUsers.delete(user);
+                            }
+                            renderScheduler();
+                        });
+                        const label = document.createElement("label");
+                        label.htmlFor = user;
+                        label.textContent = user;
+                        checkboxWrapper.appendChild(checkbox);
+                        checkboxWrapper.appendChild(label);
+                        userCheckboxes.appendChild(checkboxWrapper);
+                    }
+                });
             }
 
             function saveUsers() {
@@ -180,7 +159,7 @@
             });
 
             addUserButton.addEventListener("click", () => {
-                addUserModal.style.display = "flex";
+                addUserModal.classList.remove("hidden");
             });
 
             saveUserButton.addEventListener("click", () => {
@@ -190,7 +169,7 @@
                     saveUsers();
                     renderUserSelect();
                     newUserNameInput.value = "";
-                    addUserModal.style.display = "none";
+                    addUserModal.classList.add("hidden");
                 } else {
                     alert("Invalid or duplicate user name.");
                 }
@@ -198,7 +177,7 @@
 
             cancelUserButton.addEventListener("click", () => {
                 newUserNameInput.value = "";
-                addUserModal.style.display = "none";
+                addUserModal.classList.add("hidden");
             });
 
             // Initial Render
