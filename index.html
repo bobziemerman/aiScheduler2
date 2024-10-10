@@ -64,6 +64,7 @@
             function createCell(content, cssClass = "") {
                 const cell = document.createElement("div");
                 cell.textContent = content;
+                cell.classList.add("h-16", "w-full", "flex", "items-center", "justify-center", "text-sm");
                 if (cssClass) {
                     cell.classList.add(cssClass);
                 }
@@ -81,10 +82,11 @@
                         const availabilityKey = `${currentUser}-${day}-${time}`;
                         const isCurrentUserAvailable = scheduleData[availabilityKey] === "available";
                         const otherUsersAvailable = [...activeUsers].every(user => scheduleData[`${user}-${day}-${time}`] === "available");
+                        const unavailableUsers = [...activeUsers].filter(user => user !== currentUser && scheduleData[`${user}-${day}-${time}`] !== "available");
                         const cellClass = isCurrentUserAvailable
-                            ? (otherUsersAvailable ? "bg-green-200" : "bg-gray-400")
+                            ? (otherUsersAvailable ? "bg-green-200" : "bg-gray-200")
                             : "bg-red-200";
-                        const cell = createCell("", cellClass);
+                        const cell = createCell(isCurrentUserAvailable && unavailableUsers.length > 0 ? unavailableUsers.join(', ') : "", cellClass);
                         cell.addEventListener("click", () => {
                             if (currentUser) {
                                 if (cell.classList.contains("bg-green-200")) {
@@ -125,28 +127,31 @@
                 const userCheckboxes = document.getElementById("userCheckboxes");
                 userCheckboxes.innerHTML = '';
                 users.forEach(user => {
-                    if (user !== currentUser) {
-                        const checkboxWrapper = document.createElement("div");
-                        const checkbox = document.createElement("input");
-                        checkbox.type = "checkbox";
-                        checkbox.id = user;
-                        checkbox.checked = activeUsers.has(user);
-                        checkbox.addEventListener("change", () => {
-                            if (checkbox.checked) {
-                                activeUsers.add(user);
-                            } else {
-                                activeUsers.delete(user);
-                            }
-                            renderScheduler();
-                        });
-                        const label = document.createElement("label");
-                        label.htmlFor = user;
-                        label.textContent = user;
-                        checkboxWrapper.appendChild(checkbox);
-                        checkboxWrapper.appendChild(label);
-                        userCheckboxes.appendChild(checkboxWrapper);
+                    const checkboxWrapper = document.createElement("div");
+                    const checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.id = user;
+                    checkbox.checked = activeUsers.has(user);
+                    if (user === currentUser) {
+                        checkbox.checked = true;
+                        checkbox.disabled = true;
                     }
-                });
+                    checkbox.addEventListener("change", () => {
+                        if (checkbox.checked) {
+                            activeUsers.add(user);
+                        } else {
+                            activeUsers.delete(user);
+                        }
+                        renderScheduler();
+                    });
+                    const label = document.createElement("label");
+                    label.htmlFor = user;
+                    label.textContent = user;
+                    checkboxWrapper.appendChild(checkbox);
+                    checkboxWrapper.appendChild(label);
+                    userCheckboxes.appendChild(checkboxWrapper);
+                    }
+                );
             }
 
             function saveUsers() {
@@ -155,6 +160,9 @@
 
             userSelect.addEventListener("change", () => {
                 currentUser = userSelect.value;
+                activeUsers.clear();
+                activeUsers.add(currentUser);
+                renderUserCheckboxes();
                 renderScheduler();
             });
 
