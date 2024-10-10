@@ -63,8 +63,15 @@
 
             function createCell(content, cssClass = "") {
                 const cell = document.createElement("div");
-                cell.textContent = content;
-                cell.classList.add("h-16", "w-full", "flex", "items-center", "justify-center", "text-sm");
+                const textElement = document.createElement("span");
+                textElement.textContent = content;
+                textElement.classList.add("truncate");
+                textElement.style.display = "block";
+                textElement.style.overflow = "hidden";
+                textElement.style.textOverflow = "ellipsis";
+                textElement.style.whiteSpace = "nowrap";
+                cell.appendChild(textElement);
+                cell.classList.add("h-10", "w-full", "flex", "items-center", "justify-center", "text-xs");
                 if (cssClass) {
                     cell.classList.add(cssClass);
                 }
@@ -87,6 +94,22 @@
                             ? (otherUsersAvailable ? "bg-green-200" : "bg-gray-200")
                             : "bg-red-200";
                         const cell = createCell(isCurrentUserAvailable && unavailableUsers.length > 0 ? unavailableUsers.join(', ') : "", cellClass);
+                        cell.style.display = "flex";
+                        cell.style.alignItems = "center";
+                        cell.style.justifyContent = "center";
+                        cell.style.overflow = "hidden";
+                        cell.style.textOverflow = "ellipsis";
+                        cell.style.whiteSpace = "nowrap";
+                        cell.classList.add("truncate", "flex", "items-center", "justify-center");
+                        
+                        cell.style.whiteSpace = "nowrap";
+                        cell.style.textOverflow = "ellipsis";
+                        cell.classList.add("truncate");
+                        if (unavailableUsers.length > 0) {
+                            if (unavailableUsers.length > 0) {
+                            cell.title = unavailableUsers.join(', ');
+                        }
+                        }
                         cell.addEventListener("click", () => {
                             if (currentUser) {
                                 if (cell.classList.contains("bg-green-200")) {
