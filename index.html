@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Group Availability Scheduler2</title>
+    <title>Group Availability Scheduler</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -57,7 +57,6 @@
         <div class="header">Saturday</div>
         <div class="header">Sunday</div>
 
-        <!-- Dummy Data -->
         <!-- Timeslots 9AM to 10PM in half-hour increments -->
         <script>
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -78,16 +77,7 @@
             }
 
             const scheduler = document.querySelector(".scheduler");
-            const scheduleData = {};
-
-            // Load saved schedule data from the server
-            fetch('/load-schedule')
-                .then(response => response.json())
-                .then(data => {
-                    Object.assign(scheduleData, data);
-                    renderScheduler();
-                })
-                .catch(error => console.error('Error loading schedule:', error));
+            let scheduleData = {};
 
             function renderScheduler() {
                 timeSlots.forEach(time => {
@@ -111,21 +101,31 @@
                 });
             }
 
+            function loadSchedule() {
+                fetch('load-schedule.php')
+                    .then(response => response.json())
+                    .then(data => {
+                        scheduleData = data;
+                        renderScheduler();
+                    })
+                    .catch(error => console.error('Error loading schedule:', error));
+            }
+
             function saveSchedule() {
-                fetch('/save-schedule', {
+                fetch('save-schedule.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(scheduleData)
-                })
-                .then(response => {
+                }).then(response => {
                     if (!response.ok) {
                         throw new Error('Failed to save schedule');
                     }
-                })
-                .catch(error => console.error('Error saving schedule:', error));
+                }).catch(error => console.error('Error saving schedule:', error));
             }
+
+            loadSchedule();
         </script>
     </div>
 </body>
