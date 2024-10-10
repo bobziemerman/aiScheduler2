@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Availability Scheduler</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7;
+        }
+        .scheduler {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            max-width: 1200px;
+            width: 100%;
+        }
+        .scheduler div {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: center;
+            cursor: pointer;
+        }
+        .header {
+            background-color: #0044cc;
+            color: #ffffff;
+            font-weight: bold;
+        }
+        .available {
+            background-color: #d4edda;
+        }
+        .unavailable {
+            background-color: #f8d7da;
+        }
+        .partially-available {
+            background-color: #ffeeba;
+        }
+    </style>
+</head>
+<body>
+    <h1>Group Availability Scheduler</h1>
+    <div class="scheduler">
+        <!-- Headers -->
+        <div class="header">Time</div>
+        <div class="header">Monday</div>
+        <div class="header">Tuesday</div>
+        <div class="header">Wednesday</div>
+        <div class="header">Thursday</div>
+        <div class="header">Friday</div>
+        <div class="header">Saturday</div>
+        <div class="header">Sunday</div>
+
+        <!-- Dummy Data -->
+        <!-- Timeslots 9AM to 10PM in half-hour increments -->
+        <script>
+            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            const timeSlots = [];
+            for (let i = 9; i < 22; i++) {
+                timeSlots.push(`${i}:00`);
+                timeSlots.push(`${i}:30`);
+            }
+            timeSlots.push("22:00"); // Last slot 10 PM
+
+            function createCell(content, cssClass = "") {
+                const cell = document.createElement("div");
+                cell.textContent = content;
+                if (cssClass) {
+                    cell.classList.add(cssClass);
+                }
+                return cell;
+            }
+
+            const scheduler = document.querySelector(".scheduler");
+            const scheduleData = {};
+
+            // Load saved schedule data from the server
+            fetch('/load-schedule')
+                .then(response => response.json())
+                .then(data => {
+                    Object.assign(scheduleData, data);
+                    renderScheduler();
+                })
+                .catch(error => console.error('Error loading schedule:', error));
+
+            function renderScheduler() {
+                timeSlots.forEach(time => {
+                    scheduler.appendChild(createCell(time, "header"));
+                    days.forEach(day => {
+                        const cell = createCell("", scheduleData[`${day}-${time}`] === "available" ? "available" : "unavailable");
+                        cell.addEventListener("click", () => {
+                            if (cell.classList.contains("available")) {
+                                cell.classList.remove("available");
+                                cell.classList.add("unavailable");
+                                scheduleData[`${day}-${time}`] = "unavailable";
+                            } else {
+                                cell.classList.remove("unavailable");
+                                cell.classList.add("available");
+                                scheduleData[`${day}-${time}`] = "available";
+                            }
+                            saveSchedule();
+                        });
+                        scheduler.appendChild(cell);
+                    });
+                });
+            }
+
+            function saveSchedule() {
+                fetch('/save-schedule', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(scheduleData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to save schedule');
+                    }
+                })
+                .catch(error => console.error('Error saving schedule:', error));
+            }
+        </script>
+    </div>
+</body>
+</html>
